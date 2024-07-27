@@ -11,7 +11,13 @@ import {
 import { PlusIcon, MinusIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-type Player = { name: string; curMoney: number; moneyLog: string[] };
+type Player = { name: string; curMoney: number; moneyLog: number[] };
+
+const getLastLog = (player: Player) => {
+  return player.moneyLog.length > 0
+    ? player.moneyLog[player.moneyLog.length - 1]
+    : 0;
+};
 
 const BrassGameTracker: React.FC = () => {
   const [display, setDisplay] = useState<string>("0");
@@ -36,16 +42,15 @@ const BrassGameTracker: React.FC = () => {
     if (!user) {
       const newPlayer: Player = {
         name: newUsername,
-        curMoney: 0,
-        moneyLog: [],
+        moneyLog: [0],
       };
       setPlayers([newPlayer, ...players]);
       localStorage.setItem("players", JSON.stringify([newPlayer, ...players]));
       localStorage.setItem("username", newUsername); // Store the player's name
-      setDisplay(String(newPlayer.curMoney));
+      setDisplay("0");
     } else {
       // load player
-      setDisplay(String(user.curMoney));
+      setDisplay(String(getLastLog(user)));
       setUsername(user.name);
     }
   }, [username]);
@@ -64,7 +69,7 @@ const BrassGameTracker: React.FC = () => {
             return {
               ...player,
               curMoney: Number(result),
-              moneyLog: [...player.moneyLog, String(result)],
+              moneyLog: [...player.moneyLog, result],
             };
           }
           return player;
@@ -109,11 +114,7 @@ const BrassGameTracker: React.FC = () => {
 };
 
 const PlayerOrder: React.FC<{ players: Player[] }> = ({ players }) => {
-  const getLastLog = (player: Player) => {
-    return player.moneyLog.length > 0
-      ? player.moneyLog[player.moneyLog.length - 1]
-      : "0";
-  };
+  const sum = players.reduce((acc, player) => acc + player.moneyLog[0], 0);
 
   return (
     <Card>
@@ -123,13 +124,13 @@ const PlayerOrder: React.FC<{ players: Player[] }> = ({ players }) => {
           {players.map((player, index) => (
             <Card key={index} className="p-4 text-xl">
               <span>{player.name}</span>
-              <span>${player.curMoney}</span>
+              <span>${sum}</span>
               <span
                 style={{
                   color:
-                    getLastLog(player) === "0"
+                    getLastLog(player) === 0
                       ? "black"
-                      : getLastLog(player).startsWith("-")
+                      : getLastLog(player) < 0
                       ? "red"
                       : "green",
                 }}

@@ -11,12 +11,17 @@ import {
 import { PlusIcon, MinusIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-type Player = { name: string; curMoney: number; moneyLog: number[] };
+type Player = { name: string; moneyLog: number[] };
 
 const getLastLog = (player: Player) => {
   return player.moneyLog.length > 0
     ? player.moneyLog[player.moneyLog.length - 1]
     : 0;
+};
+
+const curMoney = (player: Player) => {
+  const sum = player.moneyLog.reduce((acc, log) => acc + log, 0);
+  return sum;
 };
 
 const BrassGameTracker: React.FC = () => {
@@ -68,8 +73,7 @@ const BrassGameTracker: React.FC = () => {
             // Assuming the first player is the current player
             return {
               ...player,
-              curMoney: Number(result),
-              moneyLog: [...player.moneyLog, result],
+              moneyLog: [...player.moneyLog, result - curMoney(player)],
             };
           }
           return player;
@@ -89,7 +93,7 @@ const BrassGameTracker: React.FC = () => {
     } else {
       const isOp = value === "+" || value === "-";
       if (value === "C") {
-        setDisplay(String(getPlayer()?.curMoney || 0));
+        setDisplay(String(curMoney(getPlayer()!)));
       } else if (isOp) {
         if (!curOp) {
           setCurOp(value);
@@ -114,28 +118,31 @@ const BrassGameTracker: React.FC = () => {
 };
 
 const PlayerOrder: React.FC<{ players: Player[] }> = ({ players }) => {
-  const sum = players.reduce((acc, player) => acc + player.moneyLog[0], 0);
-
   return (
     <Card>
       <CardHeader>Player order</CardHeader>
       <CardContent>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="flex flex-row gap-2">
           {players.map((player, index) => (
-            <Card key={index} className="p-4 text-xl">
-              <span>{player.name}</span>
-              <span>${sum}</span>
-              <span
-                style={{
-                  color:
-                    getLastLog(player) === 0
-                      ? "black"
-                      : getLastLog(player) < 0
-                      ? "red"
-                      : "green",
-                }}
-              >
-                ${getLastLog(player)}
+            <Card key={index} className="p-4 text-xl w-full">
+              <span className="block font-bold">
+                {player.name.toUpperCase()}
+              </span>
+              <span className="block">
+                ${curMoney(player)}{" "}
+                <span
+                  style={{
+                    color:
+                      getLastLog(player) === 0
+                        ? "black"
+                        : getLastLog(player) < 0
+                        ? "red"
+                        : "green",
+                  }}
+                >
+                  ({getLastLog(player) > 0 && "+"}
+                  {(getLastLog(player) || "").toString().replace("$", "")})
+                </span>
               </span>
             </Card>
           ))}

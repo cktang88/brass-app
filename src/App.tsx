@@ -11,7 +11,7 @@ import {
 import { PlusIcon, MinusIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-type Player = { name: string; curMoney: number; moneyLog: number[] };
+type Player = { name: string; curMoney: number; moneyLog: string[] };
 
 const BrassGameTracker: React.FC = () => {
   const [display, setDisplay] = useState<string>("0");
@@ -27,48 +27,28 @@ const BrassGameTracker: React.FC = () => {
 
   useEffect(() => {
     const storedPlayers = localStorage.getItem("players");
-    const newUsername: string = prompt("Username:")!;
 
     if (storedPlayers) {
       setPlayers(JSON.parse(storedPlayers));
-    } else {
-      const user = getPlayer();
-      if (!user) {
-        const newPlayer: Player = {
-          name: newUsername,
-          curMoney: 0,
-          moneyLog: [],
-        };
-        setPlayers([newPlayer, ...players]);
-        localStorage.setItem(
-          "players",
-          JSON.stringify([newPlayer, ...players])
-        );
-        localStorage.setItem("username", newUsername); // Store the player's name
-      } else {
-        // load player
-        setDisplay(String(user.curMoney));
-      }
     }
-    setUsername(newUsername);
-  }, []);
-
-  const buttons = [
-    "C",
-    "7",
-    "8",
-    "9",
-    "-",
-    "4",
-    "5",
-    "6",
-    "+",
-    "1",
-    "2",
-    "3",
-    "=",
-    "0",
-  ];
+    const newUsername: string = "f"; //prompt("Username:")!;
+    const user = getPlayer();
+    if (!user) {
+      const newPlayer: Player = {
+        name: newUsername,
+        curMoney: 0,
+        moneyLog: [],
+      };
+      setPlayers([newPlayer, ...players]);
+      localStorage.setItem("players", JSON.stringify([newPlayer, ...players]));
+      localStorage.setItem("username", newUsername); // Store the player's name
+      setDisplay(String(newPlayer.curMoney));
+    } else {
+      // load player
+      setDisplay(String(user.curMoney));
+      setUsername(user.name);
+    }
+  }, [username]);
 
   const updateMoney = () => {
     setCurOp(null);
@@ -81,7 +61,11 @@ const BrassGameTracker: React.FC = () => {
         const updatedPlayers = prevPlayers.map((player, index) => {
           if (index === 0) {
             // Assuming the first player is the current player
-            return { ...player, curMoney: Number(result) };
+            return {
+              ...player,
+              curMoney: Number(result),
+              moneyLog: [...player.moneyLog, String(result)],
+            };
           }
           return player;
         });
@@ -112,62 +96,106 @@ const BrassGameTracker: React.FC = () => {
     }
   };
 
-  const PlayerOrder = () => {
-    return (
-      <Card>
-        <CardHeader>Player order</CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-2">
-            {players.map((player, index) => (
-              <Button key={index} variant="secondary" className="p-4 text-sm">
-                {player.name} {player.curMoney}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+  return (
+    <>
+      <PlayerOrder players={players} />
+      <MyMoney
+        handleClick={handleButtonClick}
+        error={error}
+        display={display}
+      />
+    </>
+  );
+};
 
-  const MyMoney = () => {
-    return (
-      <Card className="max-w-full mx-auto p-4">
-        <CardHeader className="bg-black rounded-lg p-4 text-right text-4xl font-bold text-white">
-          {error ? error : display}
-        </CardHeader>
-        <CardContent className="mt-4">
-          <div className="grid grid-cols-4 gap-2">
-            {buttons.map((btn, index) => (
-              <Button
-                key={index}
-                variant={
-                  ["-", "+", "="].includes(btn) ? "destructive" : "secondary"
-                }
-                className={`p-4 text-xl ${btn === "=" ? "row-span-2" : ""} ${
-                  btn === "0" ? "col-span-2" : ""
-                }`}
-                onClick={() => handleButtonClick(btn)}
-              >
-                {btn === "-" ? (
-                  <MinusIcon className="h-5 w-5" />
-                ) : btn === "+" ? (
-                  <PlusIcon className="h-5 w-5" />
-                ) : (
-                  btn
-                )}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
+const PlayerOrder: React.FC<{ players: Player[] }> = ({ players }) => {
+  const getLastLog = (player: Player) => {
+    return player.moneyLog.length > 0
+      ? player.moneyLog[player.moneyLog.length - 1]
+      : "0";
   };
 
   return (
-    <>
-      <PlayerOrder />
-      <MyMoney />
-    </>
+    <Card>
+      <CardHeader>Player order</CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-4 gap-2">
+          {players.map((player, index) => (
+            <Card key={index} className="p-4 text-xl">
+              <span>{player.name}</span>
+              <span>${player.curMoney}</span>
+              <span
+                style={{
+                  color:
+                    getLastLog(player) === "0"
+                      ? "black"
+                      : getLastLog(player).startsWith("-")
+                      ? "red"
+                      : "green",
+                }}
+              >
+                ${getLastLog(player)}
+              </span>
+            </Card>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const MyMoney: React.FC<{
+  handleClick: (value: string) => void;
+  error: string;
+  display: string;
+}> = ({ handleClick, error, display }) => {
+  const buttons = [
+    "C",
+    "7",
+    "8",
+    "9",
+    "-",
+    "4",
+    "5",
+    "6",
+    "+",
+    "1",
+    "2",
+    "3",
+    "=",
+    "0",
+  ];
+
+  return (
+    <Card className="max-w-full mx-auto p-4">
+      <CardHeader className="bg-black rounded-lg p-4 text-right text-4xl font-bold text-white">
+        {error ? error : display}
+      </CardHeader>
+      <CardContent className="mt-4">
+        <div className="grid grid-cols-4 gap-2">
+          {buttons.map((btn, index) => (
+            <Button
+              key={index}
+              variant={
+                ["-", "+", "="].includes(btn) ? "destructive" : "secondary"
+              }
+              className={`p-4 text-xl ${btn === "=" ? "row-span-2" : ""} ${
+                btn === "0" ? "col-span-2" : ""
+              }`}
+              onClick={() => handleClick(btn)}
+            >
+              {btn === "-" ? (
+                <MinusIcon className="h-5 w-5" />
+              ) : btn === "+" ? (
+                <PlusIcon className="h-5 w-5" />
+              ) : (
+                btn
+              )}
+            </Button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
